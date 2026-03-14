@@ -18,36 +18,31 @@ jobs:
             compiler: gcc
             cc: gcc
             cxx: g++
-            install_command: sudo apt-get update && sudo apt-get install -y doxygen g++ libgtest-dev meson ninja-build pkg-config
-            build_docs: true
+            install_command: sudo apt-get update && sudo apt-get install -y g++ libgtest-dev meson ninja-build pkg-config
           - name: ubuntu-24.04 x64 clang
             runs_on: ubuntu-24.04
             compiler: clang
             cc: clang
             cxx: clang++
-            install_command: sudo apt-get update && sudo apt-get install -y clang doxygen libgtest-dev meson ninja-build pkg-config
-            build_docs: false
+            install_command: sudo apt-get update && sudo apt-get install -y clang libgtest-dev meson ninja-build pkg-config
           - name: ubuntu-24.04 arm64 gcc
             runs_on: ubuntu-24.04-arm
             compiler: gcc
             cc: gcc
             cxx: g++
-            install_command: sudo apt-get update && sudo apt-get install -y doxygen g++ libgtest-dev meson ninja-build pkg-config
-            build_docs: false
+            install_command: sudo apt-get update && sudo apt-get install -y g++ libgtest-dev meson ninja-build pkg-config
           - name: macos-15 arm64 clang
             runs_on: macos-15
             compiler: clang
             cc: clang
             cxx: clang++
-            install_command: brew update && brew install doxygen googletest meson ninja pkgconf
-            build_docs: false
+            install_command: brew update && brew install googletest meson ninja pkgconf
           - name: macos-15-intel x64 clang
             runs_on: macos-15-intel
             compiler: clang
             cc: clang
             cxx: clang++
-            install_command: brew update && brew install doxygen googletest meson ninja pkgconf
-            build_docs: false
+            install_command: brew update && brew install googletest meson ninja pkgconf
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
@@ -63,9 +58,6 @@ jobs:
         run: meson test -C build --print-errorlogs
       - name: Install
         run: meson install -C build --destdir "${{ github.workspace }}/stage"
-      - name: Generate docs
-        if: matrix.build_docs
-        run: meson compile -C build docs
 
   windows:
     name: ${{ matrix.name }}
@@ -77,27 +69,30 @@ jobs:
           - name: windows-2025 x64 ucrt64
             runs_on: windows-2025
             msystem: UCRT64
+            cc: gcc
+            cxx: g++
             install_packages: >-
               git
-              mingw-w64-ucrt-x86_64-doxygen
               mingw-w64-ucrt-x86_64-gcc
               mingw-w64-ucrt-x86_64-gtest
               mingw-w64-ucrt-x86_64-meson
               mingw-w64-ucrt-x86_64-ninja
               mingw-w64-ucrt-x86_64-pkgconf
-            build_docs: false
           - name: windows-11-arm arm64 clangarm64
             runs_on: windows-11-arm
             msystem: CLANGARM64
+            cc: clang
+            cxx: clang++
             install_packages: >-
               git
               mingw-w64-clang-aarch64-clang
-              mingw-w64-clang-aarch64-doxygen
               mingw-w64-clang-aarch64-gtest
               mingw-w64-clang-aarch64-meson
               mingw-w64-clang-aarch64-ninja
               mingw-w64-clang-aarch64-pkgconf
-            build_docs: false
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
     defaults:
       run:
         shell: msys2 {0}

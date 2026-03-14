@@ -68,15 +68,6 @@ With `pkg-config` after installation:
 pkg-config --cflags wqparallel
 ```
 
-## Documentation
-
-```sh
-meson compile -C build docs
-```
-
-The `docs` target generates Doxygen HTML documentation under
-`build/docs/doxygen/html`.
-
 ## Notes
 
 - Parallel iterator algorithms use indexed access when available.

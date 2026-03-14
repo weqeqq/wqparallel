@@ -1,11 +1,4 @@
 option(
-  'docs',
-  type: 'feature',
-  value: 'auto',
-  description: 'Enable the Doxygen documentation target',
-)
-
-option(
   'tests',
   type: 'feature',
   value: 'auto',
