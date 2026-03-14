@@ -219,7 +219,7 @@ class ThreadPool {
 
  private:
   static constexpr std::ptrdiff_t kMinBlockSize  = 64;
-  static constexpr std::size_t kMaxGlobalThreads = 8;
+  static constexpr std::size_t kMaxGlobalThreads = 4;
 
   static std::size_t DefaultGlobalThreadCount() {
     const auto hardware_threads = std::thread::hardware_concurrency();

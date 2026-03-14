@@ -64,6 +64,22 @@ TEST(TransformTest, ParallelRandomAccessPathProducesExpectedValues) {
   }
 }
 
+TEST(TransformTest, ParallelExecutionCanBeRepeatedSafely) {
+  std::vector<int> input(4096);
+  std::iota(input.begin(), input.end(), 0);
+  std::vector<int> output(input.size(), 0);
+
+  for (int iteration = 0; iteration < 16; ++iteration) {
+    weqeqq::parallel::Transform(
+        weqeqq::parallel::Execution::kParallel, input.begin(), input.end(),
+        output.begin(), [iteration](int value) { return value + iteration; });
+
+    for (std::size_t i = 0; i < output.size(); ++i) {
+      EXPECT_EQ(output[i], static_cast<int>(i) + iteration);
+    }
+  }
+}
+
 TEST(TransformTest, FallsBackForBidirectionalIterators) {
   std::list<int> input{3, 4, 5};
   std::list<int> output(input.size(), 0);
@@ -74,6 +90,18 @@ TEST(TransformTest, FallsBackForBidirectionalIterators) {
 
   EXPECT_EQ(std::vector<int>(output.begin(), output.end()),
             std::vector<int>({10, 11, 12}));
+}
+
+TEST(ForEachTest, ParallelRandomAccessPathMutatesVector) {
+  std::vector<int> values(2048, 1);
+
+  weqeqq::parallel::ForEach(weqeqq::parallel::Execution::kParallel,
+                            values.begin(), values.end(),
+                            [](int& value) { value *= 3; });
+
+  for (int value : values) {
+    EXPECT_EQ(value, 3);
+  }
 }
 
 TEST(ThreadPoolSubmitTest, PropagatesExceptionsThroughFuture) {
@@ -140,6 +168,20 @@ TEST(PolicyOverloadTest, SupportsParallelAlgorithms) {
       weqeqq::parallel::ExecutionPolicy{weqeqq::parallel::Execution::kParallel},
       output.begin(), output.end(), [](int& value) { value *= 2; });
   EXPECT_EQ(output, std::vector<int>({4, 6, 8, 10}));
+}
+
+TEST(ForEachIndexTest, ParallelExecutionHandlesLargeRanges) {
+  std::vector<int> values(4096, 0);
+
+  weqeqq::parallel::ForEachIndex(
+      weqeqq::parallel::Execution::kParallel, 0,
+      static_cast<std::ptrdiff_t>(values.size()), [&](std::ptrdiff_t i) {
+        values[static_cast<std::size_t>(i)] = static_cast<int>(i % 11);
+      });
+
+  for (std::size_t i = 0; i < values.size(); ++i) {
+    EXPECT_EQ(values[i], static_cast<int>(i % 11));
+  }
 }
 
 }  // namespace

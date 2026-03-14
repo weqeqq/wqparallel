@@ -12,10 +12,25 @@
 #include <cstddef>
 #include <functional>
 #include <iterator>
+#include <thread>
 #include <utility>
 #include <variant>
 
 namespace weqeqq::parallel {
+
+namespace detail {
+
+inline constexpr std::ptrdiff_t kExecutionParallelThreshold = 256;
+inline constexpr std::size_t kDefaultExecutionThreads       = 4;
+
+inline std::size_t DefaultExecutionThreadCount() {
+  const auto hardware_threads = std::thread::hardware_concurrency();
+  if (hardware_threads == 0) return 1;
+
+  return std::min<std::size_t>(hardware_threads, kDefaultExecutionThreads);
+}
+
+}  // namespace detail
 
 /**
  * \brief Iterates over an index range sequentially.
@@ -52,8 +67,12 @@ inline void ForEachIndex(Execution execution, std::ptrdiff_t start,
     return ForEachIndex(start, end, std::forward<Function>(function));
   }
 
-  ThreadPool::Global().ParallelFor(start, end,
-                                   std::forward<Function>(function));
+  if (total < detail::kExecutionParallelThreshold) {
+    return ForEachIndex(start, end, std::forward<Function>(function));
+  }
+
+  ThreadPool pool(detail::DefaultExecutionThreadCount());
+  pool.ParallelFor(start, end, std::forward<Function>(function));
 }
 
 /**
