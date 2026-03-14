@@ -10,6 +10,7 @@ pkgconfig = import('pkgconfig')
 wqparallel_inc = include_directories('headers')
 docs_opt = get_option('docs')
 tests_opt = get_option('tests')
+sh = find_program('sh', required: false)
 
 wqparallel_dep = declare_dependency(
   include_directories: wqparallel_inc,
@@ -59,6 +60,10 @@ endif
 
 doxygen = find_program('doxygen', required: docs_opt)
 if doxygen.found()
+  if not sh.found()
+    error('A POSIX shell is required to run the docs target.')
+  endif
+
   docs_conf = configuration_data()
   docs_conf.set('PROJECT_NAME', meson.project_name())
   docs_conf.set('PROJECT_VERSION', meson.project_version())
@@ -81,6 +86,12 @@ if doxygen.found()
 
   run_target(
     'docs',
-    command: [doxygen, doxyfile],
+    command: [
+      sh,
+      files('scripts/run-doxygen.sh'),
+      meson.project_build_root() / 'docs' / 'doxygen',
+      doxygen,
+      doxyfile,
+    ],
   )
 endif
