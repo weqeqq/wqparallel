@@ -1,0 +1,118 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux-and-macos:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu-24.04 x64 gcc
+            runs_on: ubuntu-24.04
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            install_command: sudo apt-get update && sudo apt-get install -y doxygen g++ libgtest-dev meson ninja-build pkg-config
+            build_docs: true
+          - name: ubuntu-24.04 x64 clang
+            runs_on: ubuntu-24.04
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            install_command: sudo apt-get update && sudo apt-get install -y clang doxygen libgtest-dev meson ninja-build pkg-config
+            build_docs: false
+          - name: ubuntu-24.04 arm64 gcc
+            runs_on: ubuntu-24.04-arm
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            install_command: sudo apt-get update && sudo apt-get install -y doxygen g++ libgtest-dev meson ninja-build pkg-config
+            build_docs: false
+          - name: macos-15 arm64 clang
+            runs_on: macos-15
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            install_command: brew update && brew install doxygen googletest meson ninja pkgconf
+            build_docs: false
+          - name: macos-15-intel x64 clang
+            runs_on: macos-15-intel
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            install_command: brew update && brew install doxygen googletest meson ninja pkgconf
+            build_docs: false
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: ${{ matrix.install_command }}
+      - name: Configure
+        run: meson setup build
+      - name: Compile
+        run: meson compile -C build
+      - name: Test
+        run: meson test -C build --print-errorlogs
+      - name: Install
+        run: meson install -C build --destdir "${{ github.workspace }}/stage"
+      - name: Generate docs
+        if: matrix.build_docs
+        run: meson compile -C build docs
+
+  windows:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-2025 x64 ucrt64
+            runs_on: windows-2025
+            msystem: UCRT64
+            install_packages: >-
+              git
+              mingw-w64-ucrt-x86_64-doxygen
+              mingw-w64-ucrt-x86_64-gcc
+              mingw-w64-ucrt-x86_64-gtest
+              mingw-w64-ucrt-x86_64-meson
+              mingw-w64-ucrt-x86_64-ninja
+              mingw-w64-ucrt-x86_64-pkgconf
+            build_docs: false
+          - name: windows-11-arm arm64 clangarm64
+            runs_on: windows-11-arm
+            msystem: CLANGARM64
+            install_packages: >-
+              git
+              mingw-w64-clang-aarch64-clang
+              mingw-w64-clang-aarch64-doxygen
+              mingw-w64-clang-aarch64-gtest
+              mingw-w64-clang-aarch64-meson
+              mingw-w64-clang-aarch64-ninja
+              mingw-w64-clang-aarch64-pkgconf
+            build_docs: false
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: ${{ matrix.install_packages }}
+      - name: Configure
+        run: meson setup build
+      - name: Compile
+        run: meson compile -C build
+      - name: Test
+        run: meson test -C build --print-errorlogs
+      - name: Install
+        run: meson install -C build --destdir "$GITHUB_WORKSPACE/stage"
