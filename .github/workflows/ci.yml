@@ -66,18 +66,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: windows-2025 x64 ucrt64
-            runs_on: windows-2025
-            msystem: UCRT64
-            cc: gcc
-            cxx: g++
-            install_packages: >-
-              git
-              mingw-w64-ucrt-x86_64-gcc
-              mingw-w64-ucrt-x86_64-gtest
-              mingw-w64-ucrt-x86_64-meson
-              mingw-w64-ucrt-x86_64-ninja
-              mingw-w64-ucrt-x86_64-pkgconf
           - name: windows-11-arm arm64 clangarm64
             runs_on: windows-11-arm
             msystem: CLANGARM64
