@@ -111,9 +111,8 @@ class ThreadPool {
                    Function&& function) {
     if (start >= end) return;
 
-    const auto total = end - start;
-    const auto task_count =
-        std::min(static_cast<std::ptrdiff_t>(workers_.size() + 1), total);
+    const auto total      = end - start;
+    const auto task_count = ComputeTaskCount(total);
 
     if (task_count <= 1) {
       for (auto i = start; i < end; ++i) {
@@ -139,8 +138,7 @@ class ThreadPool {
       }
     };
 
-    const auto block_size =
-        std::max<std::ptrdiff_t>(1, total / (task_count * 4));
+    const auto block_size = ComputeBlockSize(total, task_count);
     std::atomic<std::ptrdiff_t> next{start};
     auto state = std::make_shared<SharedState>();
 
@@ -215,11 +213,38 @@ class ThreadPool {
    * \brief Returns the lazily created process-wide pool instance.
    */
   static ThreadPool& Global() {
-    static ThreadPool instance;
+    static ThreadPool instance(DefaultGlobalThreadCount());
     return instance;
   }
 
  private:
+  static constexpr std::ptrdiff_t kMinBlockSize  = 64;
+  static constexpr std::size_t kMaxGlobalThreads = 8;
+
+  static std::size_t DefaultGlobalThreadCount() {
+    const auto hardware_threads = std::thread::hardware_concurrency();
+    if (hardware_threads == 0) return 1;
+
+    return std::min<std::size_t>(hardware_threads, kMaxGlobalThreads);
+  }
+
+  std::ptrdiff_t ComputeTaskCount(std::ptrdiff_t total) const {
+    const auto max_task_count =
+        std::min(static_cast<std::ptrdiff_t>(workers_.size() + 1), total);
+    const auto suggested_task_count = std::max<std::ptrdiff_t>(
+        1, (total + kMinBlockSize - 1) / kMinBlockSize);
+
+    return std::min(max_task_count, suggested_task_count);
+  }
+
+  static std::ptrdiff_t ComputeBlockSize(std::ptrdiff_t total,
+                                         std::ptrdiff_t task_count) {
+    const auto base_block_size =
+        std::max<std::ptrdiff_t>(1, total / (task_count * 4));
+
+    return std::max(kMinBlockSize, base_block_size);
+  }
+
   void WorkerLoop() {
     while (true) {
       std::function<void()> task;
