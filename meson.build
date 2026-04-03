@@ -3,7 +3,7 @@ project(
   ['cpp'],
   version: '0.2.1',
   license: 'MIT',
-  default_options: ['cpp_std=c++23', 'warning_level=3'],
+  default_options: ['cpp_std=c++23,c++latest', 'warning_level=3'],
 )
 
 pkgconfig = import('pkgconfig')
