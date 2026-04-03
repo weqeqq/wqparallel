@@ -32,10 +32,7 @@ pkgconfig.generate(
 )
 
 if not tests_opt.disabled()
-  gtest_dep = dependency('gtest', main: true, required: false)
-  if not gtest_dep.found()
-    gtest_dep = dependency('gtest_main', required: tests_opt)
-  endif
+  gtest_dep = dependency('gtest', main: true, fallback: ['gtest', 'gtest_main_dep'])
 
   if gtest_dep.found()
     subdir('tests')
