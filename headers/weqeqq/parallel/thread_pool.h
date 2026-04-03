@@ -124,7 +124,7 @@ class ThreadPool {
 
     struct SharedState {
       std::atomic<bool> cancelled{false};
-      std::atomic<std::ptrdiff_t> completed_workers{0};
+      std::ptrdiff_t completed_workers = 0;
       std::mutex done_mutex;
       std::condition_variable done_cv;
       std::mutex exception_mutex;
@@ -135,6 +135,14 @@ class ThreadPool {
         std::lock_guard<std::mutex> lock(exception_mutex);
         if (!exception) {
           exception = ex;
+        }
+      }
+
+      void MarkWorkerDone(std::ptrdiff_t expected_workers) {
+        std::lock_guard<std::mutex> lock(done_mutex);
+        ++completed_workers;
+        if (completed_workers == expected_workers) {
+          done_cv.notify_one();
         }
       }
     };
@@ -177,11 +185,7 @@ class ThreadPool {
       for (std::ptrdiff_t t = 0; t < task_count - 1; ++t) {
         tasks_.emplace([run_blocks, state, task_count]() mutable {
           run_blocks();
-          if (state->completed_workers.fetch_add(1, std::memory_order_acq_rel) +
-                  1 ==
-              task_count - 1) {
-            state->done_cv.notify_one();
-          }
+          state->MarkWorkerDone(task_count - 1);
         });
       }
     }
@@ -191,8 +195,7 @@ class ThreadPool {
 
     std::unique_lock<std::mutex> lock(state->done_mutex);
     state->done_cv.wait(lock, [&] {
-      return state->completed_workers.load(std::memory_order_acquire) ==
-             task_count - 1;
+      return state->completed_workers == task_count - 1;
     });
     lock.unlock();
 
