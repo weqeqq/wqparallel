@@ -38,13 +38,7 @@ if not tests_opt.disabled()
   endif
 
   if gtest_dep.found()
-    wqparallel_tests = executable(
-      'wqparallel_tests',
-      'tests/wqparallel_tests.cc',
-      include_directories: wqparallel_inc,
-      dependencies: gtest_dep,
-    )
-    test('wqparallel', wqparallel_tests, protocol: 'gtest', suite: 'unit')
+    subdir('tests')
   elif tests_opt.enabled()
     error(
       'System GoogleTest was not found. Install gtest/gtest_main via your system package manager or configure with -Dtests=disabled.',

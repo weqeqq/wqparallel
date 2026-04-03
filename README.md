@@ -27,7 +27,9 @@ meson setup build -Dtests=disabled
 ```
 
 `-Dtests=enabled` requires system GoogleTest to be present. `-Dtests=auto`
-builds the tests only when the dependency is available.
+builds the tests only when the dependency is available. The test sources live in
+`tests/sources`, and `tests/meson.build` registers them as separate gtest
+targets.
 
 ## Install
 
