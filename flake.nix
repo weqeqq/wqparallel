@@ -25,7 +25,7 @@
           mkLibrary = { tests ? false }:
             pkgs.stdenv.mkDerivation {
               pname = "wqparallel";
-              version = "0.2.1";
+              version = "0.2.2";
               src = ./.;
 
               strictDeps = true;

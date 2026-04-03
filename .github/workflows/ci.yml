@@ -1,101 +1,103 @@
-name: ci
+name: CI
 
 on:
-  push:
   pull_request:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  linux-and-macos:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.runs_on }}
+  build-and-test:
+    name: ${{ matrix.job_name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: ubuntu-24.04 x64 gcc
-            runs_on: ubuntu-24.04
-            compiler: gcc
-            cc: gcc
-            cxx: g++
-            install_command: sudo apt-get update && sudo apt-get install -y g++ libgtest-dev meson ninja-build pkg-config
-          - name: ubuntu-24.04 x64 clang
-            runs_on: ubuntu-24.04
-            compiler: clang
-            cc: clang
-            cxx: clang++
-            install_command: sudo apt-get update && sudo apt-get install -y clang libgtest-dev meson ninja-build pkg-config
-          - name: ubuntu-24.04 arm64 gcc
-            runs_on: ubuntu-24.04-arm
-            compiler: gcc
-            cc: gcc
-            cxx: g++
-            install_command: sudo apt-get update && sudo apt-get install -y g++ libgtest-dev meson ninja-build pkg-config
-          - name: macos-15 arm64 clang
-            runs_on: macos-15
-            compiler: clang
-            cc: clang
-            cxx: clang++
-            install_command: brew update && brew install googletest meson ninja pkgconf
-          - name: macos-15-intel x64 clang
-            runs_on: macos-15-intel
-            compiler: clang
-            cc: clang
-            cxx: clang++
-            install_command: brew update && brew install googletest meson ninja pkgconf
-    env:
-      CC: ${{ matrix.cc }}
-      CXX: ${{ matrix.cxx }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: ${{ matrix.install_command }}
-      - name: Configure
-        run: meson setup build
-      - name: Compile
-        run: meson compile -C build
-      - name: Test
-        run: meson test -C build --print-errorlogs
-      - name: Install
-        run: meson install -C build --destdir "${{ github.workspace }}/stage"
+          - os: ubuntu-24.04
+            job_name: Linux x64
+          - os: ubuntu-24.04-arm
+            job_name: Linux ARM64
+          - os: macos-15
+            job_name: macOS ARM64
+          - os: macos-15-intel
+            job_name: macOS x64
+          - os: windows-2022
+            job_name: Windows x64
+            vcpkg_triplet: x64-windows
 
-  windows:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.runs_on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: windows-11-arm arm64 clangarm64
-            runs_on: windows-11-arm
-            msystem: CLANGARM64
-            cc: clang
-            cxx: clang++
-            install_packages: >-
-              git
-              mingw-w64-clang-aarch64-clang
-              mingw-w64-clang-aarch64-gtest
-              mingw-w64-clang-aarch64-meson
-              mingw-w64-clang-aarch64-ninja
-              mingw-w64-clang-aarch64-pkgconf
-    env:
-      CC: ${{ matrix.cc }}
-      CXX: ${{ matrix.cxx }}
-    defaults:
-      run:
-        shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
-      - uses: msys2/setup-msys2@v2
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          msystem: ${{ matrix.msystem }}
-          update: true
-          install: ${{ matrix.install_packages }}
-      - name: Configure
-        run: meson setup build
+          python-version: "3.13"
+
+      - name: Install Meson and Ninja
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install meson==1.10.1 ninja==1.13.0
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtest-dev pkg-config
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: brew install googletest pkgconf
+
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        env:
+          VCPKG_DISABLE_METRICS: "1"
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg.git vcpkg
+          Set-Location vcpkg
+          git checkout --detach e80346e570b767219f85dc95e3736853bfec3a70
+          & .\bootstrap-vcpkg.bat -disableMetrics
+          & .\vcpkg.exe install --clean-after-build gtest:${{ matrix.vcpkg_triplet }}
+
+      - name: Configure Meson on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          extra_args=()
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            gtest_prefix="$(brew --prefix googletest)"
+            extra_args+=("--cmake-prefix-path=${gtest_prefix}")
+            if [[ -d "${gtest_prefix}/lib/pkgconfig" ]]; then
+              export PKG_CONFIG_PATH="${gtest_prefix}/lib/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
+            fi
+          fi
+
+          meson setup build \
+            --buildtype=debugoptimized \
+            -Dtests=enabled \
+            "${extra_args[@]}"
+
+      - name: Configure Meson on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          meson setup build --vsenv --buildtype=debugoptimized -Dtests=enabled --cmake-prefix-path="$env:GITHUB_WORKSPACE\vcpkg\installed\${{ matrix.vcpkg_triplet }}"
+
       - name: Compile
         run: meson compile -C build
-      - name: Test
+
+      - name: Run tests
         run: meson test -C build --print-errorlogs
-      - name: Install
-        run: meson install -C build --destdir "$GITHUB_WORKSPACE/stage"
