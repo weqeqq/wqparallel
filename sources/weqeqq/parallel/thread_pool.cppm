@@ -1,25 +1,6 @@
-/**
- * \file thread_pool.h
- * \brief Thread pool and parallel loop primitives.
- */
+export module weqeqq.parallel:thread_pool;
 
-#pragma once
-
-#include <algorithm>
-#include <atomic>
-#include <condition_variable>
-#include <cstddef>
-#include <exception>
-#include <functional>
-#include <future>
-#include <memory>
-#include <mutex>
-#include <queue>
-#include <stdexcept>
-#include <thread>
-#include <type_traits>
-#include <utility>
-#include <vector>
+import std;
 
 namespace weqeqq::parallel {
 
@@ -31,7 +12,7 @@ namespace weqeqq::parallel {
  * Exceptions thrown by submitted work are propagated through the corresponding
  * `std::future` or rethrown by ParallelFor().
  */
-class ThreadPool {
+export class ThreadPool {
  public:
   /**
    * \brief Creates a pool with the requested worker count.
@@ -194,9 +175,8 @@ class ThreadPool {
     run_blocks();
 
     std::unique_lock<std::mutex> lock(state->done_mutex);
-    state->done_cv.wait(lock, [&] {
-      return state->completed_workers == task_count - 1;
-    });
+    state->done_cv.wait(
+        lock, [&] { return state->completed_workers == task_count - 1; });
     lock.unlock();
 
     std::exception_ptr exception;

@@ -32,72 +32,30 @@ jobs:
             job_name: macOS x64
           - os: windows-2022
             job_name: Windows x64
-            vcpkg_triplet: x64-windows
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up xmake
+        uses: xmake-io/github-action-setup-xmake@v1
         with:
-          python-version: "3.13"
+          xmake-version: latest
 
-      - name: Install Meson and Ninja
+      - name: Cache xmake dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.xmake
+            ~/.xrepo
+          key: ${{ runner.os }}-xmake-${{ hashFiles('**/xmake.lua') }}
+          restore-keys: |
+            ${{ runner.os }}-xmake-
+
+      - name: Configure and Build
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install meson==1.10.1 ninja==1.13.0
-
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtest-dev pkg-config
-
-      - name: Install macOS dependencies
-        if: runner.os == 'macOS'
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: "1"
-        run: brew install googletest pkgconf
-
-      - name: Install Windows dependencies
-        if: runner.os == 'Windows'
-        env:
-          VCPKG_DISABLE_METRICS: "1"
-        shell: pwsh
-        run: |
-          git clone --filter=blob:none https://github.com/microsoft/vcpkg.git vcpkg
-          Set-Location vcpkg
-          git checkout --detach e80346e570b767219f85dc95e3736853bfec3a70
-          & .\bootstrap-vcpkg.bat -disableMetrics
-          & .\vcpkg.exe install --clean-after-build gtest:${{ matrix.vcpkg_triplet }}
-
-      - name: Configure Meson on Linux and macOS
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          extra_args=()
-          if [[ "${{ runner.os }}" == "macOS" ]]; then
-            gtest_prefix="$(brew --prefix googletest)"
-            extra_args+=("--cmake-prefix-path=${gtest_prefix}")
-            if [[ -d "${gtest_prefix}/lib/pkgconfig" ]]; then
-              export PKG_CONFIG_PATH="${gtest_prefix}/lib/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
-            fi
-          fi
-
-          meson setup build \
-            --buildtype=debugoptimized \
-            -Dtests=enabled \
-            "${extra_args[@]}"
-
-      - name: Configure Meson on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          meson setup build --vsenv --buildtype=debugoptimized -Dtests=enabled --cmake-prefix-path="$env:GITHUB_WORKSPACE\vcpkg\installed\${{ matrix.vcpkg_triplet }}"
-
-      - name: Compile
-        run: meson compile -C build
+          xmake f --tests=y -y
+          xmake
 
       - name: Run tests
-        run: meson test -C build --print-errorlogs
+        run: xmake run tests

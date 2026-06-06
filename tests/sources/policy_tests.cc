@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <weqeqq/parallel.h>
+import weqeqq.parallel;
 
 #include <vector>
 

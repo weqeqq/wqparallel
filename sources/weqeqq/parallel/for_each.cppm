@@ -1,19 +1,8 @@
-/**
- * \file for_each.h
- * \brief Parallel-friendly algorithms built on top of ThreadPool.
- */
+export module weqeqq.parallel:for_each;
 
-#pragma once
-
-#include <weqeqq/parallel/execution.h>
-#include <weqeqq/parallel/thread_pool.h>
-
-#include <algorithm>
-#include <cstddef>
-#include <functional>
-#include <iterator>
-#include <utility>
-#include <variant>
+import :execution;
+import :thread_pool;
+import std;
 
 namespace weqeqq::parallel {
 
@@ -24,7 +13,7 @@ namespace weqeqq::parallel {
  * \param end Exclusive end index.
  * \param function Function called for each index.
  */
-template <typename Function>
+export template <typename Function>
 inline void ForEachIndex(std::ptrdiff_t start, std::ptrdiff_t end,
                          Function&& function) {
   for (auto index = start; index < end; ++index) {
@@ -40,7 +29,7 @@ inline void ForEachIndex(std::ptrdiff_t start, std::ptrdiff_t end,
  * \param end Exclusive end index.
  * \param function Function called for each index.
  */
-template <typename Function>
+export template <typename Function>
 inline void ForEachIndex(Execution execution, std::ptrdiff_t start,
                          std::ptrdiff_t end, Function&& function) {
   if (execution == Execution::kSequential || start >= end) {
@@ -64,7 +53,7 @@ inline void ForEachIndex(Execution execution, std::ptrdiff_t start,
  * \param end Exclusive end index.
  * \param function Function called for each index.
  */
-template <typename Function>
+export template <typename Function>
 inline void ForEachIndex(ThreadPool& pool, std::ptrdiff_t start,
                          std::ptrdiff_t end, Function&& function) {
   if (start >= end) return;
@@ -77,7 +66,7 @@ inline void ForEachIndex(ThreadPool& pool, std::ptrdiff_t start,
  * The policy can either hold an `Execution` enum or a reference to a
  * user-supplied ThreadPool.
  */
-using ExecutionPolicy =
+export using ExecutionPolicy =
     std::variant<std::reference_wrapper<ThreadPool>, Execution>;
 
 /**
@@ -88,7 +77,7 @@ using ExecutionPolicy =
  * \param end Exclusive end index.
  * \param function Function called for each index.
  */
-template <typename Function>
+export template <typename Function>
 inline void ForEachIndex(ExecutionPolicy policy, std::ptrdiff_t start,
                          std::ptrdiff_t end, Function&& function) {
   if (std::holds_alternative<std::reference_wrapper<ThreadPool>>(policy)) {
@@ -107,7 +96,7 @@ inline void ForEachIndex(ExecutionPolicy policy, std::ptrdiff_t start,
  * \param end Exclusive end index.
  * \param function Function called for each index.
  */
-template <typename Function>
+export template <typename Function>
 inline void ForEachIndexParallel(std::ptrdiff_t start, std::ptrdiff_t end,
                                  Function&& function) {
   ForEachIndex(Execution::kParallel, start, end,
@@ -128,7 +117,8 @@ inline void ForEachIndexParallel(std::ptrdiff_t start, std::ptrdiff_t end,
  * Random-access iterators use the indexed parallel path. Other iterator
  * categories transparently fall back to `std::transform`.
  */
-template <typename InputIterator, typename OutputIterator, typename Function>
+export template <typename InputIterator, typename OutputIterator,
+                 typename Function>
 inline void Transform(Execution execution, InputIterator first,
                       InputIterator last, OutputIterator output,
                       Function&& function) {
@@ -159,7 +149,8 @@ inline void Transform(Execution execution, InputIterator first,
  * \param output Beginning of the output range.
  * \param function Unary transform function.
  */
-template <typename InputIterator, typename OutputIterator, typename Function>
+export template <typename InputIterator, typename OutputIterator,
+                 typename Function>
 inline void Transform(ThreadPool& pool, InputIterator first, InputIterator last,
                       OutputIterator output, Function&& function) {
   if constexpr (!std::random_access_iterator<InputIterator> ||
@@ -184,7 +175,8 @@ inline void Transform(ThreadPool& pool, InputIterator first, InputIterator last,
  * \param output Beginning of the output range.
  * \param function Unary transform function.
  */
-template <typename InputIterator, typename OutputIterator, typename Function>
+export template <typename InputIterator, typename OutputIterator,
+                 typename Function>
 inline void Transform(ExecutionPolicy policy, InputIterator first,
                       InputIterator last, OutputIterator output,
                       Function&& function) {
@@ -209,7 +201,7 @@ inline void Transform(ExecutionPolicy policy, InputIterator first,
  * Random-access iterators use the indexed parallel path. Other iterator
  * categories transparently fall back to `std::for_each`.
  */
-template <typename Iterator, typename Function>
+export template <typename Iterator, typename Function>
 inline void ForEach(Execution execution, Iterator first, Iterator last,
                     Function&& function) {
   if (execution == Execution::kSequential) {
@@ -236,7 +228,7 @@ inline void ForEach(Execution execution, Iterator first, Iterator last,
  * \param last End of the range.
  * \param function Function applied to each element.
  */
-template <typename Iterator, typename Function>
+export template <typename Iterator, typename Function>
 inline void ForEach(ThreadPool& pool, Iterator first, Iterator last,
                     Function&& function) {
   if constexpr (!std::random_access_iterator<Iterator>) {
@@ -258,7 +250,7 @@ inline void ForEach(ThreadPool& pool, Iterator first, Iterator last,
  * \param last End of the range.
  * \param function Function applied to each element.
  */
-template <typename Iterator, typename Function>
+export template <typename Iterator, typename Function>
 inline void ForEach(ExecutionPolicy policy, Iterator first, Iterator last,
                     Function&& function) {
   if (std::holds_alternative<std::reference_wrapper<ThreadPool>>(policy)) {

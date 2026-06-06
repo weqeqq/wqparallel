@@ -1,16 +1,11 @@
-/**
- * \file execution.h
- * \brief Execution policy declarations.
- */
-
-#pragma once
+export module weqeqq.parallel:execution;
 
 namespace weqeqq::parallel {
 
 /**
  * \brief Selects whether an algorithm should run sequentially or in parallel.
  */
-enum class Execution {
+export enum class Execution {
   /// Prefer the parallel implementation.
   kParallel,
   /// Force the sequential implementation.
