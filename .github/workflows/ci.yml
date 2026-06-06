@@ -24,12 +24,8 @@ jobs:
         include:
           - os: ubuntu-24.04
             job_name: Linux x64
-            cc: gcc-14
-            cxx: g++-14
           - os: ubuntu-24.04-arm
             job_name: Linux ARM64
-            cc: gcc-14
-            cxx: g++-14
           - os: macos-15
             job_name: macOS ARM64
           - os: macos-15-intel
@@ -63,14 +59,8 @@ jobs:
             ${{ runner.os }}-xmake-
 
       - name: Configure
-        run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            xmake f --tests=y --cc=${{ matrix.cc }} --cxx=${{ matrix.cxx }} --runtimes=c++_static -y
-          elif [ "${{ runner.os }}" = "Windows" ]; then
-            xmake f --tests=y --runtimes=MTd -y
-          else
-            xmake f --tests=y -y
-          fi
+        if: runner.os == 'Linux'
+        run: xmake f --tests=y
 
       - name: Build
         run: xmake
