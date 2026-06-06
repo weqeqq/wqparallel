@@ -1,8 +1,15 @@
+
+module;
+
+#include <algorithm>
+#include <functional>
+#include <iterator>
+#include <variant>
+
 export module weqeqq.parallel:for_each;
 
 import :execution;
 import :thread_pool;
-import std;
 
 namespace weqeqq::parallel {
 

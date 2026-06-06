@@ -1,6 +1,17 @@
-export module weqeqq.parallel:thread_pool;
+module;
 
-import std;
+#include <atomic>
+#include <condition_variable>
+#include <exception>
+#include <functional>
+#include <future>
+#include <mutex>
+#include <queue>
+#include <stdexcept>
+#include <thread>
+#include <vector>
+
+export module weqeqq.parallel:thread_pool;
 
 namespace weqeqq::parallel {
 
