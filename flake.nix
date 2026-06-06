@@ -22,25 +22,11 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           llvm = pkgs.llvmPackages_latest;
-
-          clangLibcxx = pkgs.symlinkJoin {
-            name = "clang-libcxx-${llvm.clang.version}";
-            paths = [
-              llvm.libcxxClang
-              llvm.libcxx
-              llvm.libcxx.dev
-              llvm.clang-tools
-            ];
-          };
         in
         {
           default = pkgs.mkShell.override { stdenv = llvm.libcxxStdenv; } {
-            hardeningDisable = [ "fortify" ];
-
             packages = [
-              clangLibcxx
               llvm.clang-tools
-              llvm.lldb
               pkgs.xmake
               pkgs.ninja
             ];

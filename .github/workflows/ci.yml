@@ -42,16 +42,6 @@ jobs:
         with:
           xmake-version: latest
 
-      - name: Install Latest LLVM (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh all
-          CLANG_VERSION=$(ls /usr/bin/clang-[0-9]* | grep -oP '\d+' | sort -rn | head -n1)
-          echo "CLANG_VERSION=$CLANG_VERSION" >> $GITHUB_ENV
-          sudo apt-get install -y "libc++-${CLANG_VERSION}-dev" "libc++abi-${CLANG_VERSION}-dev"
-
       - name: Cache xmake dependencies
         uses: actions/cache@v4
         with:
@@ -62,20 +52,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-xmake-
 
-      - name: Configure (Linux)
-        if: runner.os == 'Linux'
-        env:
-          CC: clang-${{ env.CLANG_VERSION }}
-          CXX: clang++-${{ env.CLANG_VERSION }}
-        run: xmake f --tests=y --runtimes=c++_shared -y
-
-      - name: Configure (Windows)
-        if: runner.os == 'Windows'
-        run: xmake f --tests=y -y
-
-      - name: Configure (macOS)
-        if: runner.os == 'macOS'
-        run: xmake f --tests=y -y
+      - name: Configure
+        run: xmake config --yes
 
       - name: Build
         run: xmake
