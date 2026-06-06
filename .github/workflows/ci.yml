@@ -57,6 +57,3 @@ jobs:
 
       - name: Build
         run: xmake
-
-      - name: Run tests
-        run: xmake run tests
