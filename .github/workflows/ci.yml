@@ -60,7 +60,7 @@ jobs:
 
       - name: Configure
         if: runner.os == 'Linux'
-        run: xmake f --tests=y
+        run: xmake f --tests=y -y
 
       - name: Build
         run: xmake
